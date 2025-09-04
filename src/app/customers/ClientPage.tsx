@@ -21,6 +21,8 @@ export default function ClientPage() {
   const supabase = useMemo(() => createClient(), []);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [formMode, setFormMode] = useState<"create" | "append">("create");
+  const [targetCustomerId, setTargetCustomerId] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -108,6 +110,88 @@ export default function ClientPage() {
     setPhone("");
     setEmail("");
     setPrice("");
+    setWorkContent("");
+    setWorkDateInput("");
+    setWorkDates([]);
+    setNextWorkDate("");
+    setNote("");
+    setFiles([]);
+  };
+
+  const appendWorkToCustomer = async () => {
+    setError(null);
+    if (!targetCustomerId) {
+      setError("顧客を選択してください");
+      return;
+    }
+    const hasSomething =
+      workDates.length > 0 || !!nextWorkDate || files.length > 0 || workContent.trim() !== "" || note.trim() !== "";
+    if (!hasSomething) {
+      setError("追加内容がありません");
+      return;
+    }
+
+    // 画像アップロード（追加分）
+    let newlyUrls: string[] = [];
+    if (files.length > 0) {
+      setUploading(true);
+      for (const f of files) {
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}-${f.name}`;
+        const { data: up, error: upErr } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(path, f, { upsert: false });
+        if (upErr) {
+          setUploading(false);
+          setError(`画像アップロード失敗: ${upErr.message}`);
+          return;
+        }
+        const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(up!.path);
+        if (pub?.publicUrl) newlyUrls.push(pub.publicUrl);
+      }
+      setUploading(false);
+    }
+
+    // 既存データをローカルから取得
+    const current = customers.find((x) => x.id === targetCustomerId);
+    const currentDates = Array.isArray(current?.work_dates) ? current!.work_dates : [];
+    const mergedDates = Array.from(new Set([...currentDates, ...workDates])).sort();
+    const mergedPhotos = [...(current?.photos_work || []), ...newlyUrls];
+
+    const payload: Record<string, unknown> = {
+      work_dates: mergedDates.length > 0 ? mergedDates : undefined,
+      photos_work: mergedPhotos.length > 0 ? mergedPhotos : undefined,
+    };
+    if (nextWorkDate) payload.next_work_date = nextWorkDate;
+    if (workContent.trim() !== "") payload.work_content = workContent.trim();
+    if (note.trim() !== "") payload.note = note.trim();
+
+    const { error } = await supabase
+      .from("customers")
+      .update(payload)
+      .eq("id", targetCustomerId)
+      .select();
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    // ローカル反映
+    setCustomers((prev) =>
+      prev.map((c) =>
+        c.id === targetCustomerId
+          ? {
+              ...c,
+              work_dates: (payload.work_dates as string[] | undefined) ?? c.work_dates,
+              next_work_date: (payload.next_work_date as string | undefined) ?? c.next_work_date,
+              work_content: (payload.work_content as string | undefined) ?? c.work_content,
+              photos_work: (payload.photos_work as string[] | undefined) ?? c.photos_work,
+              note: (payload.note as string | undefined) ?? c.note,
+            }
+          : c
+      )
+    );
+
+    // フィールドリセット（モードは維持）
     setWorkContent("");
     setWorkDateInput("");
     setWorkDates([]);
@@ -245,29 +329,75 @@ export default function ClientPage() {
 
       <main className="p-4 space-y-4">
         <section className="rounded-2xl border border-gray-200 p-4 shadow-sm">
+          <div className="mb-3 flex gap-2">
+            <button
+              type="button"
+              className={`h-10 px-4 rounded-xl border text-[14px] ${formMode === "create" ? "bg-black text-white" : "bg-white"}`}
+              onClick={() => {
+                setFormMode("create");
+                setTargetCustomerId("");
+              }}
+            >
+              新規顧客登録
+            </button>
+            <button
+              type="button"
+              className={`h-10 px-4 rounded-xl border text-[14px] ${formMode === "append" ? "bg-black text-white" : "bg-white"}`}
+              onClick={() => {
+                setFormMode("append");
+                setEditingId(null);
+              }}
+            >
+              追加作業登録
+            </button>
+          </div>
           <div className="grid grid-cols-1 gap-3">
-            <input
+            {formMode === "append" && (
+              <div className="flex flex-col gap-1">
+                <label className="text-[14px] text-gray-700">対象顧客</label>
+                <select
+                  className="h-12 rounded-xl border border-gray-300 px-3 text-[16px]"
+                  value={targetCustomerId}
+                  onChange={(e) => setTargetCustomerId(e.target.value)}
+                >
+                  <option value="">選択してください</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name || "(未設定)"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {formMode === "create" && (
+              <input
               className="h-12 rounded-xl border border-gray-300 px-4 text-[16px] focus:outline-none focus:ring-4 focus:ring-gray-200"
               placeholder="名前"
               value={name}
               onChange={(e) => setName(e.target.value)}
-            />
-            <input
+              />
+            )}
+            {formMode === "create" && (
+              <input
               className="h-12 rounded-xl border border-gray-300 px-4 text-[16px] focus:outline-none focus:ring-4 focus:ring-gray-200"
               placeholder="電話"
               inputMode="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-            />
-            <input
+              />
+            )}
+            {formMode === "create" && (
+              <input
               className="h-12 rounded-xl border border-gray-300 px-4 text-[16px] focus:outline-none focus:ring-4 focus:ring-gray-200"
               placeholder="メール"
               inputMode="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-            />
+              />
+            )}
             <div className="grid grid-cols-2 gap-2">
-              <input
+              {formMode === "create" && (
+                <input
                 className="h-12 rounded-xl border border-gray-300 px-4 text-[16px] focus:outline-none focus:ring-4 focus:ring-gray-200"
                 placeholder="金額 (円)"
                 inputMode="numeric"
@@ -278,7 +408,8 @@ export default function ClientPage() {
                   const formatted = digits === "" ? "" : Number(digits).toLocaleString();
                   setPrice(formatted);
                 }}
-              />
+                />
+              )}
               <div className="flex flex-col gap-1">
                 <label className="text-[14px] text-gray-700">次回作業実施予定日</label>
                 <input
@@ -372,10 +503,16 @@ export default function ClientPage() {
             <div className="grid grid-cols-2 gap-2">
               <button
                 className="h-12 rounded-xl bg-black text-white text-[16px] active:scale-[0.98] disabled:opacity-50"
-                onClick={editingId ? saveEditCustomer : addCustomer}
+                onClick={
+                  formMode === "append"
+                    ? appendWorkToCustomer
+                    : editingId
+                    ? saveEditCustomer
+                    : addCustomer
+                }
                 disabled={loading}
               >
-                {editingId ? "更新" : "追加"}
+                {formMode === "append" ? "作業を追加" : editingId ? "更新" : "追加"}
               </button>
               {editingId && (
                 <button
