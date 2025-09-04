@@ -34,6 +34,7 @@ export default function CalendarPage() {
   const [month, setMonth] = useState(today.getMonth());
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [holidays, setHolidays] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const load = async () => {
@@ -45,6 +46,29 @@ export default function CalendarPage() {
     };
     load();
   }, [supabase]);
+
+  // 祝日を最新APIから取得（holidays-jp）
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      try {
+        const targets = new Set<number>([year]);
+        if (month === 0) targets.add(year - 1);
+        if (month === 11) targets.add(year + 1);
+        const lists = await Promise.all(
+          Array.from(targets).map(async (y) => {
+            const res = await fetch(`https://holidays-jp.github.io/api/v1/${y}/date.json`);
+            if (!res.ok) return {} as Record<string, string>;
+            return (await res.json()) as Record<string, string>;
+          })
+        );
+        const merged = Object.assign({}, ...lists);
+        setHolidays(new Set(Object.keys(merged)));
+      } catch {
+        // ignore fetch errors
+      }
+    };
+    fetchHolidays();
+  }, [year, month]);
 
   const matrix = getMonthMatrix(year, month);
   const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -105,8 +129,18 @@ export default function CalendarPage() {
             const key = ym(d);
             const inMonth = d.getMonth() === month;
             const items = byDate.get(key) || [];
+            const dow = d.getDay(); // 0=Sun ... 6=Sat
+            const isHoliday = holidays.has(key) || dow === 0;
+            const isSaturday = dow === 6;
+            const bgColor = isHoliday
+              ? "bg-rose-50"
+              : isSaturday
+              ? "bg-blue-50"
+              : inMonth
+              ? "bg-white"
+              : "bg-gray-50 text-gray-400";
             return (
-              <div key={i} className={`min-h-24 p-1 rounded border ${inMonth ? "bg-white" : "bg-gray-50 text-gray-400"}`}>
+              <div key={i} className={`min-h-24 p-1 rounded border ${bgColor}`}>
                 <div className="text-[11px] text-right pr-1">{d.getDate()}</div>
                 <div className="flex flex-wrap gap-1">
                   {items.map((it) => {
@@ -116,7 +150,7 @@ export default function CalendarPage() {
                       <Link
                         key={it.id}
                         href={`/customers/${it.id}`}
-                        className="inline-flex items-center justify-center min-w-6 h-6 px-1 rounded-full bg-black text-white text-[10px]"
+                        className="inline-flex items-center justify-center min-w-6 h-6 px-1 rounded-full bg-black/80 text-white text-[10px]"
                         title={it.name || "(未設定)"}
                       >
                         {label}
