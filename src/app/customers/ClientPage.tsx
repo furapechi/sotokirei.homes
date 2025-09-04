@@ -21,33 +21,31 @@ export default function ClientPage() {
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const refresh = async () => {
+    const { data, error } = await supabase
+      .from("customers")
+      .select("id,name,phone,email,note,created_at")
+      .order("created_at", { ascending: false });
+    if (error) setError(error.message);
+    else setCustomers(data ?? []);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      const { data, error } = await supabase
-        .from("customers")
-        .select("id,name,phone,email,note,created_at")
-        .order("created_at", { ascending: false });
-      if (error) setError(error.message);
-      else setCustomers(data ?? []);
-      setLoading(false);
-    };
-    fetchData();
-  }, [supabase]);
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addCustomer = async () => {
     setError(null);
-    const payload: Record<string, string | null> = {};
-    if (name.trim()) payload.name = name.trim();
-    if (phone.trim()) payload.phone = phone.trim();
-    if (email.trim()) payload.email = email.trim();
-    if (note.trim()) payload.note = note.trim();
+    const payload = {
+      name: name.trim() || null,
+      phone: phone.trim() || null,
+      email: email.trim() || null,
+      note: note.trim() || null,
+    } as const;
 
-    if (Object.keys(payload).length === 0) {
-      setError("入力がありません");
-      return;
-    }
-
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("customers")
       .insert(payload)
       .select();
@@ -55,7 +53,7 @@ export default function ClientPage() {
       setError(error.message);
       return;
     }
-    setCustomers((prev) => [...data!, ...prev]);
+    await refresh();
     setName("");
     setPhone("");
     setEmail("");
