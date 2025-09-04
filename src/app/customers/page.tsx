@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/client";
 
 type Customer = {
   id: string;
-  name: string;
+  name?: string | null;
   phone?: string | null;
   email?: string | null;
   note?: string | null;
@@ -36,13 +36,20 @@ export default function CustomersPage() {
 
   const addCustomer = async () => {
     setError(null);
-    if (!name.trim()) {
-      setError("名前は必須です");
+    const payload: Record<string, string | null> = {};
+    if (name.trim()) payload.name = name.trim();
+    if (phone.trim()) payload.phone = phone.trim();
+    if (email.trim()) payload.email = email.trim();
+    if (note.trim()) payload.note = note.trim();
+
+    if (Object.keys(payload).length === 0) {
+      setError("入力がありません");
       return;
     }
+
     const { data, error } = await supabase
       .from("customers")
-      .insert({ name, phone: phone || null, email: email || null, note: note || null })
+      .insert(payload)
       .select();
     if (error) {
       setError(error.message);
