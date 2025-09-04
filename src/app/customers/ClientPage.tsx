@@ -197,13 +197,15 @@ export default function ClientPage() {
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
               />
-              <input
-                type="date"
-                className="h-12 rounded-xl border border-gray-300 px-4 text-[16px] focus:outline-none focus:ring-4 focus:ring-gray-200"
-                value={nextWorkDate}
-                onChange={(e) => setNextWorkDate(e.target.value)}
-                placeholder="次回作業予定日"
-              />
+              <div className="flex flex-col gap-1">
+                <label className="text-[14px] text-gray-700">次回作業実施予定日</label>
+                <input
+                  type="date"
+                  className="h-12 rounded-xl border border-gray-300 px-4 text-[16px] focus:outline-none focus:ring-4 focus:ring-gray-200"
+                  value={nextWorkDate}
+                  onChange={(e) => setNextWorkDate(e.target.value)}
+                />
+              </div>
             </div>
             <textarea
               className="min-h-20 rounded-xl border border-gray-300 px-4 py-3 text-[16px] focus:outline-none focus:ring-4 focus:ring-gray-200"
@@ -212,6 +214,7 @@ export default function ClientPage() {
               onChange={(e) => setWorkContent(e.target.value)}
             />
             <div className="space-y-2">
+              <label className="text-[14px] text-gray-700">作業実施日（複数選択可）</label>
               <div className="flex gap-2">
                 <input
                   type="date"
@@ -310,12 +313,12 @@ export default function ClientPage() {
                       )}
                       {c.work_dates && c.work_dates.length > 0 && (
                         <p className="text-[13px] text-gray-600 mt-1">
-                          作業日: {c.work_dates.join("・")}
+                          作業実施日: {c.work_dates.join("・")}
                         </p>
                       )}
                       {c.next_work_date && (
                         <p className="text-[13px] text-gray-600 mt-1">
-                          次回: {c.next_work_date}
+                          次回作業実施予定日: {c.next_work_date}
                         </p>
                       )}
                       {c.note && (
