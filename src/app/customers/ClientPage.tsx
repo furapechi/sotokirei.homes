@@ -363,7 +363,7 @@ export default function ClientPage() {
                       key={f.name + f.size}
                       src={URL.createObjectURL(f)}
                       alt="preview"
-                      className="w-full h-14 object-cover rounded"
+                      className="w-full h-20 object-contain bg-gray-100 rounded"
                     />
                   ))}
                 </div>
@@ -447,13 +447,13 @@ export default function ClientPage() {
                               <img
                                 src={url}
                                 alt="photo"
-                                className="w-full h-14 object-cover rounded"
+                                className="w-full h-20 object-contain bg-gray-100 rounded"
                                 loading="lazy"
                               />
                             </a>
                           ))}
                           {c.photos_work.length > 8 && (
-                            <div className="flex items-center justify-center h-14 rounded bg-gray-100 text-[12px] text-gray-600">
+                            <div className="flex items-center justify-center h-20 rounded bg-gray-100 text-[12px] text-gray-600">
                               +{c.photos_work.length - 8}
                             </div>
                           )}
