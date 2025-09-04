@@ -109,16 +109,20 @@ export default function CalendarPage() {
               <div key={i} className={`min-h-24 p-1 rounded border ${inMonth ? "bg-white" : "bg-gray-50 text-gray-400"}`}>
                 <div className="text-[11px] text-right pr-1">{d.getDate()}</div>
                 <div className="flex flex-wrap gap-1">
-                  {items.map((it) => (
-                    <Link
-                      key={it.id}
-                      href={`/customers/${it.id}`}
-                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-black text-white text-[10px]"
-                      title={it.name || "(未設定)"}
-                    >
-                      ●
-                    </Link>
-                  ))}
+                  {items.map((it) => {
+                    const raw = (it.name || "").trim();
+                    const label = raw ? Array.from(raw).slice(0, 2).join("") : "--";
+                    return (
+                      <Link
+                        key={it.id}
+                        href={`/customers/${it.id}`}
+                        className="inline-flex items-center justify-center min-w-6 h-6 px-1 rounded-full bg-black text-white text-[10px]"
+                        title={it.name || "(未設定)"}
+                      >
+                        {label}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             );
