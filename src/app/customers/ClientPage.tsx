@@ -89,15 +89,21 @@ export default function ClientPage() {
       note: note.trim() || null,
     } as const;
 
-    const { error } = await supabase
+    const { data: insertedRows, error } = await supabase
       .from("customers")
       .insert(payload)
-      .select();
+      .select(
+        "id,name,phone,email,contract_amount,work_content,work_dates,next_work_date,photos_work,note,created_at"
+      );
     if (error) {
       setError(error.message);
       return;
     }
-    await refresh();
+    if (insertedRows && insertedRows.length > 0) {
+      setCustomers((prev) => [insertedRows[0] as Customer, ...prev]);
+    } else {
+      await refresh();
+    }
     setName("");
     setPhone("");
     setEmail("");
@@ -308,6 +314,18 @@ export default function ClientPage() {
                 onChange={(e) => setFiles(Array.from(e.target.files || []))}
               />
               {uploading && <p className="text-[12px] text-gray-500">アップロード中...</p>}
+              {files.length > 0 && (
+                <div className="grid grid-cols-4 gap-1">
+                  {files.slice(0, 8).map((f) => (
+                    <img
+                      key={f.name + f.size}
+                      src={URL.createObjectURL(f)}
+                      alt="preview"
+                      className="w-full h-14 object-cover rounded"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
