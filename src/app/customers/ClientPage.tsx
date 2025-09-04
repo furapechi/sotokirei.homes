@@ -51,7 +51,8 @@ export default function ClientPage() {
 
   const addCustomer = async () => {
     setError(null);
-    const amount = price.trim() === "" ? undefined : Number(price);
+    const rawAmount = price.replace(/,/g, "");
+    const amount = rawAmount.trim() === "" ? undefined : Number(rawAmount);
     const payload = {
       name: name.trim() || null,
       phone: phone.trim() || null,
@@ -90,7 +91,7 @@ export default function ClientPage() {
     setEmail(c.email ?? "");
     setPrice(
       typeof c.contract_amount === "number" && !Number.isNaN(c.contract_amount)
-        ? String(c.contract_amount)
+        ? c.contract_amount.toLocaleString()
         : ""
     );
     setWorkContent(c.work_content ?? "");
@@ -102,7 +103,8 @@ export default function ClientPage() {
   const saveEditCustomer = async () => {
     if (!editingId) return;
     setError(null);
-    const amount = price.trim() === "" ? undefined : Number(price);
+    const rawAmount = price.replace(/,/g, "");
+    const amount = rawAmount.trim() === "" ? undefined : Number(rawAmount);
     const payload = {
       name: name.trim() || null,
       phone: phone.trim() || null,
@@ -195,7 +197,11 @@ export default function ClientPage() {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/[^0-9]/g, "");
+                  const formatted = digits === "" ? "" : Number(digits).toLocaleString();
+                  setPrice(formatted);
+                }}
               />
               <div className="flex flex-col gap-1">
                 <label className="text-[14px] text-gray-700">次回作業実施予定日</label>
