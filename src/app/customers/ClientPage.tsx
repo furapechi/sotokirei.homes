@@ -410,71 +410,73 @@ export default function ClientPage() {
           ) : (
             <ul className="divide-y divide-gray-200 rounded-2xl border border-gray-200 overflow-hidden">
               {customers.map((c) => (
-                <li key={c.id} className="p-4 active:bg-gray-50">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[16px] font-medium truncate">
-                        {c.name || "(未設定)"}
-                      </p>
-                      <p className="text-[14px] text-gray-600 truncate">
-                        {c.phone || "-"} / {c.email || "-"}
-                      </p>
-                      {typeof c.contract_amount === "number" && (
-                        <p className="text-[14px] text-gray-800 mt-1">
-                          ¥{c.contract_amount.toLocaleString()}
+                <li key={c.id} className="p-0">
+                  <a href={`/customers/${c.id}`} className="block p-4 active:bg-gray-50">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[16px] font-medium truncate">
+                          {c.name || "(未設定)"}
                         </p>
-                      )}
-                      {c.work_content && (
-                        <p className="text-[14px] text-gray-700 mt-1 line-clamp-2">
-                          {c.work_content}
+                        <p className="text-[14px] text-gray-600 truncate">
+                          {c.phone || "-"} / {c.email || "-"}
                         </p>
-                      )}
-                      <p className="text-[13px] text-gray-600 mt-1">
-                        作業実施日: {c.work_dates && c.work_dates.length > 0 ? c.work_dates.join("・") : "-"}
-                      </p>
-                      <p className="text-[13px] text-gray-600 mt-1">
-                        次回作業実施予定日: {c.next_work_date || "-"}
-                      </p>
-                      {c.note && (
-                        <p className="text-[13px] text-gray-600 mt-1 line-clamp-2">
-                          {c.note}
+                        {typeof c.contract_amount === "number" && (
+                          <p className="text-[14px] text-gray-800 mt-1">
+                            ¥{c.contract_amount.toLocaleString()}
+                          </p>
+                        )}
+                        {c.work_content && (
+                          <p className="text-[14px] text-gray-700 mt-1 line-clamp-2">
+                            {c.work_content}
+                          </p>
+                        )}
+                        <p className="text-[13px] text-gray-600 mt-1">
+                          作業実施日: {c.work_dates && c.work_dates.length > 0 ? c.work_dates.join("・") : "-"}
                         </p>
-                      )}
-                      {Array.isArray(c.photos_work) && c.photos_work.length > 0 && (
-                        <div className="mt-2 grid grid-cols-4 gap-1">
-                          {c.photos_work.slice(0, 8).map((url) => (
-                            <a key={url} href={url} target="_blank" className="block">
-                              <img
-                                src={url}
-                                alt="photo"
-                                className="w-full h-20 object-contain bg-gray-100 rounded"
-                                loading="lazy"
-                              />
-                            </a>
-                          ))}
-                          {c.photos_work.length > 8 && (
-                            <div className="flex items-center justify-center h-20 rounded bg-gray-100 text-[12px] text-gray-600">
-                              +{c.photos_work.length - 8}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        <p className="text-[13px] text-gray-600 mt-1">
+                          次回作業実施予定日: {c.next_work_date || "-"}
+                        </p>
+                        {c.note && (
+                          <p className="text-[13px] text-gray-600 mt-1 line-clamp-2">
+                            {c.note}
+                          </p>
+                        )}
+                        {Array.isArray(c.photos_work) && c.photos_work.length > 0 && (
+                          <div className="mt-2 grid grid-cols-4 gap-1">
+                            {c.photos_work.slice(0, 8).map((url) => (
+                              <span key={url} className="block">
+                                <img
+                                  src={url}
+                                  alt="photo"
+                                  className="w-full h-20 object-contain bg-gray-100 rounded"
+                                  loading="lazy"
+                                />
+                              </span>
+                            ))}
+                            {c.photos_work.length > 8 && (
+                              <div className="flex items-center justify-center h-20 rounded bg-gray-100 text-[12px] text-gray-600">
+                                +{c.photos_work.length - 8}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          className="px-3 py-2 rounded-lg border border-gray-300 text-[14px]"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEdit(c); }}
+                        >
+                          編集
+                        </button>
+                        <button
+                          className="px-3 py-2 rounded-lg border border-red-300 text-red-600 text-[14px]"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteCustomer(c.id); }}
+                        >
+                          削除
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex shrink-0 gap-2">
-                      <button
-                        className="px-3 py-2 rounded-lg border border-gray-300 text-[14px]"
-                        onClick={() => startEdit(c)}
-                      >
-                        編集
-                      </button>
-                      <button
-                        className="px-3 py-2 rounded-lg border border-red-300 text-red-600 text-[14px]"
-                        onClick={() => deleteCustomer(c.id)}
-                      >
-                        削除
-                      </button>
-                    </div>
-                  </div>
+                  </a>
                 </li>
               ))}
             </ul>

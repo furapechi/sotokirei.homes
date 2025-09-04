@@ -13,7 +13,7 @@ type Row = {
 function getMonthMatrix(year: number, month: number) {
   const first = new Date(year, month, 1);
   const start = new Date(first);
-  start.setDate(first.getDate() - ((first.getDay() + 6) % 7)); // Monday start
+  start.setDate(first.getDate() - first.getDay()); // Sunday start
   const weeks: Date[][] = [];
   let d = new Date(start);
   for (let w = 0; w < 6; w++) {
@@ -122,7 +122,7 @@ export default function CalendarPage() {
         <p className="text-sm text-gray-500">読み込み中...</p>
       ) : (
         <div className="grid grid-cols-7 gap-1">
-          {"月火水木金土日".split("").map((w) => (
+          {"日月火水木金土".split("").map((w) => (
             <div key={w} className="p-2 text-center text-xs text-gray-600">{w}</div>
           ))}
           {matrix.flat().map((d, i) => {
