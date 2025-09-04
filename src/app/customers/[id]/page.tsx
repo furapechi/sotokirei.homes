@@ -1,14 +1,17 @@
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
+import { cookies } from "next/headers";
 
 export const revalidate = 0;
 
-export default async function CustomerDetail({ params }: { params: { id: string } }) {
-  const supabase = createClient(await (await import("next/headers")).cookies());
+export default async function CustomerDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
   const { data } = await supabase
     .from("customers")
     .select("id,name,phone,email,contract_amount,work_content,work_dates,next_work_date,photos_work,note,created_at")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!data) return (
