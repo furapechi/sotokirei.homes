@@ -30,6 +30,7 @@ export default function ClientPage() {
   const [nextWorkDate, setNextWorkDate] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const refresh = async () => {
     const { data, error } = await supabase
@@ -80,6 +81,82 @@ export default function ClientPage() {
     setWorkDates([]);
     setNextWorkDate("");
     setNote("");
+  };
+
+  const startEdit = (c: Customer) => {
+    setEditingId(c.id);
+    setName(c.name ?? "");
+    setPhone(c.phone ?? "");
+    setEmail(c.email ?? "");
+    setPrice(
+      typeof c.contract_amount === "number" && !Number.isNaN(c.contract_amount)
+        ? String(c.contract_amount)
+        : ""
+    );
+    setWorkContent(c.work_content ?? "");
+    setWorkDates(Array.isArray(c.work_dates) ? c.work_dates : []);
+    setNextWorkDate(c.next_work_date ?? "");
+    setNote(c.note ?? "");
+  };
+
+  const saveEditCustomer = async () => {
+    if (!editingId) return;
+    setError(null);
+    const amount = price.trim() === "" ? undefined : Number(price);
+    const payload = {
+      name: name.trim() || null,
+      phone: phone.trim() || null,
+      email: email.trim() || null,
+      contract_amount: Number.isFinite(amount as number) ? (amount as number) : undefined,
+      work_content: workContent.trim() || null,
+      work_dates: workDates.length > 0 ? workDates : undefined,
+      next_work_date: nextWorkDate || null,
+      note: note.trim() || null,
+    } as const;
+
+    const { error } = await supabase
+      .from("customers")
+      .update(payload)
+      .eq("id", editingId)
+      .select();
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    await refresh();
+    setEditingId(null);
+    setName("");
+    setPhone("");
+    setEmail("");
+    setPrice("");
+    setWorkContent("");
+    setWorkDateInput("");
+    setWorkDates([]);
+    setNextWorkDate("");
+    setNote("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setName("");
+    setPhone("");
+    setEmail("");
+    setPrice("");
+    setWorkContent("");
+    setWorkDateInput("");
+    setWorkDates([]);
+    setNextWorkDate("");
+    setNote("");
+  };
+
+  const deleteCustomer = async (id: string) => {
+    if (!window.confirm("このデータを削除しますか？")) return;
+    const { error } = await supabase.from("customers").delete().eq("id", id);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    await refresh();
   };
 
   return (
@@ -179,13 +256,24 @@ export default function ClientPage() {
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
-            <button
-              className="h-12 rounded-xl bg-black text-white text-[16px] active:scale-[0.98] disabled:opacity-50"
-              onClick={addCustomer}
-              disabled={loading}
-            >
-              追加
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                className="h-12 rounded-xl bg-black text-white text-[16px] active:scale-[0.98] disabled:opacity-50"
+                onClick={editingId ? saveEditCustomer : addCustomer}
+                disabled={loading}
+              >
+                {editingId ? "更新" : "追加"}
+              </button>
+              {editingId && (
+                <button
+                  className="h-12 rounded-xl border border-gray-300 text-[16px] active:scale-[0.98]"
+                  type="button"
+                  onClick={cancelEdit}
+                >
+                  キャンセル
+                </button>
+              )}
+            </div>
             {error && (
               <p className="text-[14px] text-red-600" role="alert">{error}</p>
             )}
@@ -235,6 +323,20 @@ export default function ClientPage() {
                           {c.note}
                         </p>
                       )}
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <button
+                        className="px-3 py-2 rounded-lg border border-gray-300 text-[14px]"
+                        onClick={() => startEdit(c)}
+                      >
+                        編集
+                      </button>
+                      <button
+                        className="px-3 py-2 rounded-lg border border-red-300 text-red-600 text-[14px]"
+                        onClick={() => deleteCustomer(c.id)}
+                      >
+                        削除
+                      </button>
                     </div>
                   </div>
                 </li>
