@@ -12,6 +12,7 @@ type Customer = {
   work_content?: string | null; // 作業内容（任意）
   work_dates?: string[] | null; // 作業日 (date[])
   next_work_date?: string | null; // 次回作業予定日
+  photos_work?: string[] | null; // 作業写真URL配列
   note?: string | null;
   created_at?: string;
 };
@@ -38,7 +39,7 @@ export default function ClientPage() {
     const { data, error } = await supabase
       .from("customers")
       .select(
-        "id,name,phone,email,contract_amount,work_content,work_dates,next_work_date,note,created_at"
+        "id,name,phone,email,contract_amount,work_content,work_dates,next_work_date,photos_work,note,created_at"
       )
       .order("created_at", { ascending: false });
     if (error) setError(error.message);
@@ -378,6 +379,25 @@ export default function ClientPage() {
                         <p className="text-[13px] text-gray-600 mt-1 line-clamp-2">
                           {c.note}
                         </p>
+                      )}
+                      {Array.isArray(c.photos_work) && c.photos_work.length > 0 && (
+                        <div className="mt-2 grid grid-cols-4 gap-1">
+                          {c.photos_work.slice(0, 8).map((url) => (
+                            <a key={url} href={url} target="_blank" className="block">
+                              <img
+                                src={url}
+                                alt="photo"
+                                className="w-full h-14 object-cover rounded"
+                                loading="lazy"
+                              />
+                            </a>
+                          ))}
+                          {c.photos_work.length > 8 && (
+                            <div className="flex items-center justify-center h-14 rounded bg-gray-100 text-[12px] text-gray-600">
+                              +{c.photos_work.length - 8}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                     <div className="flex shrink-0 gap-2">

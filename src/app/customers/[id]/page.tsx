@@ -45,7 +45,7 @@ export default async function CustomerDetail({ params }: { params: Promise<{ id:
           <div className="grid grid-cols-3 gap-2">
             {data.photos_work.map((url: string) => (
               <a key={url} href={url} target="_blank" className="block">
-                <img src={url} alt="photo" className="w-full h-24 object-cover rounded" />
+                <img src={url} alt="photo" className="w-full h-28 object-cover rounded" loading="lazy" />
               </a>
             ))}
           </div>
