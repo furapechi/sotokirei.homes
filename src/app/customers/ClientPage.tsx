@@ -205,6 +205,7 @@ export default function ClientPage() {
                   value={nextWorkDate}
                   onChange={(e) => setNextWorkDate(e.target.value)}
                 />
+                <p className="text-[12px] text-gray-500">例: 次回訪問・作業予定日を1日だけ選択します。</p>
               </div>
             </div>
             <textarea
@@ -235,6 +236,7 @@ export default function ClientPage() {
                   日付追加
                 </button>
               </div>
+              <p className="text-[12px] text-gray-500">複数日を登録できます。日付を選んで「日付追加」。表示された日付バッジをタップすると削除できます。</p>
               {workDates.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {workDates.map((d) => (
@@ -311,16 +313,12 @@ export default function ClientPage() {
                           {c.work_content}
                         </p>
                       )}
-                      {c.work_dates && c.work_dates.length > 0 && (
-                        <p className="text-[13px] text-gray-600 mt-1">
-                          作業実施日: {c.work_dates.join("・")}
-                        </p>
-                      )}
-                      {c.next_work_date && (
-                        <p className="text-[13px] text-gray-600 mt-1">
-                          次回作業実施予定日: {c.next_work_date}
-                        </p>
-                      )}
+                      <p className="text-[13px] text-gray-600 mt-1">
+                        作業実施日: {c.work_dates && c.work_dates.length > 0 ? c.work_dates.join("・") : "-"}
+                      </p>
+                      <p className="text-[13px] text-gray-600 mt-1">
+                        次回作業実施予定日: {c.next_work_date || "-"}
+                      </p>
                       {c.note && (
                         <p className="text-[13px] text-gray-600 mt-1 line-clamp-2">
                           {c.note}
