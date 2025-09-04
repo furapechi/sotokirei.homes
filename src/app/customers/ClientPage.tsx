@@ -31,6 +31,8 @@ export default function ClientPage() {
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const refresh = async () => {
     const { data, error } = await supabase
@@ -53,6 +55,27 @@ export default function ClientPage() {
     setError(null);
     const rawAmount = price.replace(/,/g, "");
     const amount = rawAmount.trim() === "" ? undefined : Number(rawAmount);
+    // 画像アップロード
+    let uploadedUrls: string[] = [];
+    if (files.length > 0) {
+      setUploading(true);
+      const bucket = "customer-photos"; // Supabaseで作成(パブリック推奨)
+      for (const f of files) {
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}-${f.name}`;
+        const { data: up, error: upErr } = await supabase.storage
+          .from(bucket)
+          .upload(path, f, { upsert: false });
+        if (upErr) {
+          setUploading(false);
+          setError(`画像アップロード失敗: ${upErr.message}`);
+          return;
+        }
+        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(up!.path);
+        if (pub?.publicUrl) uploadedUrls.push(pub.publicUrl);
+      }
+      setUploading(false);
+    }
+
     const payload = {
       name: name.trim() || null,
       phone: phone.trim() || null,
@@ -61,6 +84,7 @@ export default function ClientPage() {
       work_content: workContent.trim() || null,
       work_dates: workDates.length > 0 ? workDates : undefined,
       next_work_date: nextWorkDate || null,
+      photos_work: uploadedUrls.length > 0 ? uploadedUrls : undefined,
       note: note.trim() || null,
     } as const;
 
@@ -82,6 +106,7 @@ export default function ClientPage() {
     setWorkDates([]);
     setNextWorkDate("");
     setNote("");
+    setFiles([]);
   };
 
   const startEdit = (c: Customer) => {
@@ -98,6 +123,7 @@ export default function ClientPage() {
     setWorkDates(Array.isArray(c.work_dates) ? c.work_dates : []);
     setNextWorkDate(c.next_work_date ?? "");
     setNote(c.note ?? "");
+    setFiles([]);
   };
 
   const saveEditCustomer = async () => {
@@ -136,6 +162,7 @@ export default function ClientPage() {
     setWorkDates([]);
     setNextWorkDate("");
     setNote("");
+    setFiles([]);
   };
 
   const cancelEdit = () => {
@@ -234,6 +261,10 @@ export default function ClientPage() {
                   className="h-12 px-4 rounded-xl border border-gray-300 text-[16px] active:scale-[0.98]"
                   onClick={() => {
                     if (workDateInput && !workDates.includes(workDateInput)) {
+                      if (workDates.length >= 20) {
+                        setError("作業実施日は最大20件までです");
+                        return;
+                      }
                       setWorkDates((prev) => [...prev, workDateInput].sort());
                       setWorkDateInput("");
                     }
@@ -267,6 +298,16 @@ export default function ClientPage() {
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
+            <div className="space-y-2">
+              <label className="text-[14px] text-gray-700">作業写真（複数可・最大10枚程度推奨）</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => setFiles(Array.from(e.target.files || []))}
+              />
+              {uploading && <p className="text-[12px] text-gray-500">アップロード中...</p>}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 className="h-12 rounded-xl bg-black text-white text-[16px] active:scale-[0.98] disabled:opacity-50"
@@ -292,7 +333,15 @@ export default function ClientPage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-[16px] font-medium">顧客一覧</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-[16px] font-medium">顧客一覧</h2>
+            <a
+              href="/calendar"
+              className="h-10 px-4 rounded-xl border border-gray-300 text-[14px] flex items-center"
+            >
+              カレンダースケジュール
+            </a>
+          </div>
           {loading ? (
             <p className="text-gray-500 text-[14px]">読み込み中...</p>
           ) : customers.length === 0 ? (
