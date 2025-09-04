@@ -34,6 +34,7 @@ export default function ClientPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const STORAGE_BUCKET = "customer-photos"; // Supabase Storage バケット名
 
   const refresh = async () => {
     const { data, error } = await supabase
@@ -60,18 +61,17 @@ export default function ClientPage() {
     let uploadedUrls: string[] = [];
     if (files.length > 0) {
       setUploading(true);
-      const bucket = "customer-photos"; // Supabaseで作成(パブリック推奨)
       for (const f of files) {
         const path = `${Date.now()}-${Math.random().toString(36).slice(2)}-${f.name}`;
         const { data: up, error: upErr } = await supabase.storage
-          .from(bucket)
+          .from(STORAGE_BUCKET)
           .upload(path, f, { upsert: false });
         if (upErr) {
           setUploading(false);
           setError(`画像アップロード失敗: ${upErr.message}`);
           return;
         }
-        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(up!.path);
+        const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(up!.path);
         if (pub?.publicUrl) uploadedUrls.push(pub.publicUrl);
       }
       setUploading(false);
@@ -137,6 +137,28 @@ export default function ClientPage() {
     if (!editingId) return;
     setError(null);
     const rawAmount = price.replace(/,/g, "");
+    // 既存画像 + 新規アップロード
+    let mergedUrls: string[] | undefined = undefined;
+    if (files.length > 0) {
+      setUploading(true);
+      const newly: string[] = [];
+      for (const f of files) {
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}-${f.name}`;
+        const { data: up, error: upErr } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(path, f, { upsert: false });
+        if (upErr) {
+          setUploading(false);
+          setError(`画像アップロード失敗: ${upErr.message}`);
+          return;
+        }
+        const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(up!.path);
+        if (pub?.publicUrl) newly.push(pub.publicUrl);
+      }
+      setUploading(false);
+      const current = customers.find((x) => x.id === editingId)?.photos_work || [];
+      mergedUrls = [...current, ...newly];
+    }
     const amount = rawAmount.trim() === "" ? undefined : Number(rawAmount);
     const payload = {
       name: name.trim() || null,
@@ -146,6 +168,7 @@ export default function ClientPage() {
       work_content: workContent.trim() || null,
       work_dates: workDates.length > 0 ? workDates : undefined,
       next_work_date: nextWorkDate || null,
+      photos_work: mergedUrls,
       note: note.trim() || null,
     } as const;
 
@@ -158,7 +181,26 @@ export default function ClientPage() {
       setError(error.message);
       return;
     }
-    await refresh();
+    // ローカル反映（即時）
+    setCustomers((prev) =>
+      prev.map((c) =>
+        c.id === editingId
+          ? {
+              ...c,
+              name: payload.name ?? c.name,
+              phone: payload.phone ?? c.phone,
+              email: payload.email ?? c.email,
+              contract_amount:
+                payload.contract_amount !== undefined ? payload.contract_amount : c.contract_amount,
+              work_content: payload.work_content ?? c.work_content,
+              work_dates: payload.work_dates ?? c.work_dates,
+              next_work_date: payload.next_work_date ?? c.next_work_date,
+              photos_work: mergedUrls ?? c.photos_work,
+              note: payload.note ?? c.note,
+            }
+          : c
+      )
+    );
     setEditingId(null);
     setName("");
     setPhone("");
