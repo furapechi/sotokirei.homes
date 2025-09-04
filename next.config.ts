@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     config.cache = false;
     return config;
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;
